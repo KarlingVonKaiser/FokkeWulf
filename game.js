@@ -27,7 +27,6 @@ const btnRestartEl = document.getElementById("btn-restart");
 const btnMenuEl = document.getElementById("btn-menu");
 const btnMuteEl = document.getElementById("btn-mute");
 
-// Ajusta o canvas para caber perfeitamente no container de 80vw x 100vh
 function resizeCanvas() {
     const container = document.getElementById("game-container");
     canvas.width = container.clientWidth;
@@ -136,7 +135,7 @@ function drawBackground() {
 }
 
 // ==========================================
-// 3. GERENCIADOR DE ÁUDIO BALANCEADO
+// 3. GERENCIADOR DE ÁUDIO BLINDADO
 // ==========================================
 const SOUNDS = {};
 let isMuted = false;
@@ -166,30 +165,64 @@ for (const [key, src] of Object.entries(SOUND_PATHS)) {
     }
 }
 
+// Efeitos sonoros em andamento (clones criados em playSound).
+// Sem rastrear esses clones, sons como o de game over continuavam
+// tocando depois de reiniciar a partida.
+const activeClones = new Set();
+
+// Para só as trilhas de música (bgm / boss), sem cortar efeitos sonoros
+function stopMusicTracks() {
+    for (const key of ["bgm", "bossBgm"]) {
+        if (SOUNDS[key]) {
+            SOUNDS[key].pause();
+            SOUNDS[key].currentTime = 0;
+        }
+    }
+    currentMusic = null;
+}
+
+// Para absolutamente TODOS os áudios: músicas e efeitos em andamento
+function stopAllAudio() {
+    for (const key in SOUNDS) {
+        if (SOUNDS[key]) {
+            SOUNDS[key].pause();
+            SOUNDS[key].currentTime = 0;
+        }
+    }
+    for (const clone of activeClones) {
+        clone.pause();
+        clone.currentTime = 0;
+    }
+    activeClones.clear();
+    currentMusic = null;
+}
+
 function playSound(name, customVolume = null) {
     if (isMuted) return;
 
-    let targetName = name;
-    if (!SOUNDS[targetName]) {
+    if (!SOUNDS[name]) {
         if (name === "enemyShoot" && SOUNDS.shoot) {
-            targetName = "shoot";
+            name = "shoot";
             customVolume = SOUND_VOLUMES.enemyShoot;
         } else if (name === "bossMissile" && SOUNDS.missile) {
-            targetName = "missile";
+            name = "missile";
             customVolume = SOUND_VOLUMES.bossMissile;
         } else {
             return;
         }
     }
 
-    const soundClone = SOUNDS[targetName].cloneNode();
-    soundClone.volume = customVolume !== null ? customVolume : SOUNDS[targetName].volume;
-    soundClone.play().catch(() => {});
+    const soundClone = SOUNDS[name].cloneNode();
+    soundClone.volume = customVolume !== null ? customVolume : SOUNDS[name].volume;
+
+    const release = () => activeClones.delete(soundClone);
+    activeClones.add(soundClone);
+    soundClone.addEventListener("ended", release, { once: true });
+    soundClone.play().catch(release);
 }
 
 function playMusic(trackName) {
-    if (currentMusic === SOUNDS[trackName] && !currentMusic?.paused) return;
-    stopMusic();
+    stopMusicTracks(); // Troca de trilha sem cortar os efeitos sonoros
     if (isMuted || !SOUNDS[trackName]) return;
     
     currentMusic = SOUNDS[trackName];
@@ -198,18 +231,14 @@ function playMusic(trackName) {
 }
 
 function stopMusic() {
-    if (currentMusic) {
-        currentMusic.pause();
-        currentMusic.currentTime = 0;
-        currentMusic = null;
-    }
+    stopAllAudio();
 }
 
 function toggleMute() {
     isMuted = !isMuted;
     btnMuteEl.textContent = isMuted ? "🔇 MUDO" : "🔊 SOM";
     if (isMuted) {
-        if (currentMusic) currentMusic.pause();
+        stopAllAudio();
     } else if (gameState === "PLAYING" && !pause) {
         playMusic(isBossWave ? "bossBgm" : "bgm");
     }
@@ -303,7 +332,7 @@ btnResumeEl.addEventListener("click", () => {
 
 btnQuitEl.addEventListener("click", () => {
     pause = false;
-    stopMusic();
+    stopAllAudio();
     showScreen("START");
 });
 
@@ -312,7 +341,7 @@ btnRestartEl.addEventListener("click", () => {
 });
 
 btnMenuEl.addEventListener("click", () => {
-    stopMusic();
+    stopAllAudio();
     showScreen("START");
 });
 
@@ -380,7 +409,7 @@ window.addEventListener("keydown", (e) => {
     } else if (gameState === "GAMEOVER") {
         if (key === "r") startGame();
         if (key === "m") {
-            stopMusic();
+            stopAllAudio();
             showScreen("START");
         }
     }
@@ -593,7 +622,6 @@ class Enemy {
             ctx.fillRect(this.x, this.y, this.w, this.h);
         }
 
-        // Renderiza barra de vida e o número de HP acima do inimigo
         const barWidth = Math.max(this.w, 30);
         const barHeight = 4;
         const barX = this.x + (this.w - barWidth) / 2;
@@ -797,7 +825,6 @@ class BossEnemy {
         ctx.fillStyle = "#ef4444";
         ctx.fillRect(barX, barY, barWidth * Math.max(0, this.hp / this.maxHp), barHeight);
 
-        // Texto com número de HP do Chefe
         ctx.fillStyle = "#ffffff";
         ctx.font = "bold 11px 'Courier New', monospace";
         ctx.textAlign = "center";
@@ -822,7 +849,7 @@ let lastRewardMessage = "";
 let bombFlashTimer = 0;
 
 function startGame() {
-    stopMusic();
+    stopAllAudio(); // Corta tudo antes de começar a partida
     
     player = new Player();
     bullets = [];
@@ -863,7 +890,13 @@ function startGame() {
 
 function triggerGameOver() {
     if (gameState === "GAMEOVER") return;
-    stopMusic();
+    
+    // Mata qualquer som ou música imediatamente
+    stopAllAudio();
+
+    gameState = "GAMEOVER";
+    
+    // Dispara a música/som de Game Over de forma limpa
     playSound("gameOver");
 
     const finalMission = waitingForNextMission ? waves - 1 : waves;
@@ -1060,6 +1093,7 @@ function update(dt) {
 }
 
 function damagePlayer() {
+    if (gameState !== "PLAYING") return;
     lives -= 1;
     playSound("damage");
     if (lives <= 0) {
