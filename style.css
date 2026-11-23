@@ -1,0 +1,367 @@
+* {
+    box-sizing: border-box;
+    user-select: none;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #032238;
+    color: #f8fafc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Container do jogo restrito a 80% da tela com margens laterais */
+#game-container {
+    position: relative;
+    width: 80vw;
+    height: 100vh;
+    max-width: 900px;
+    background: #0369a1;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+}
+
+/* Canvas ocupa o espaço exato do container centralizado */
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* HUD Superior */
+.hud-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.85) 0%, rgba(15, 23, 42, 0) 100%);
+    z-index: 10;
+    pointer-events: none;
+}
+
+.hud-item {
+    font-size: 1rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 0px #0f172a;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid #38bdf8;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.hud-item strong {
+    color: #facc15;
+}
+
+/* HUD Inferior */
+.hud-bottom {
+    position: absolute;
+    bottom: 14px;
+    left: 0;
+    width: 100%;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.missile-status, .bomb-status {
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid #94a3b8;
+    padding: 6px 12px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.progress-bar {
+    width: 80px;
+    height: 10px;
+    background: #1e293b;
+    border: 1px solid #cbd5e1;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 100%;
+    background: #22c55e;
+    transition: width 0.05s linear;
+}
+
+.bomb-status strong {
+    color: #facc15;
+    font-size: 1rem;
+}
+
+.debug-badge {
+    background: #dc2626;
+    color: #fff;
+    padding: 4px 8px;
+    font-weight: bold;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+/* Banner de Transição de Onda */
+.wave-banner {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    background: rgba(15, 23, 42, 0.88);
+    border-top: 3px solid #facc15;
+    border-bottom: 3px solid #facc15;
+    padding: 20px 30px;
+    z-index: 15;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    width: 90%;
+}
+
+.wave-banner h2 {
+    margin: 0 0 8px;
+    font-size: 1.6rem;
+    color: #f8fafc;
+    letter-spacing: 2px;
+}
+
+.reward-text {
+    margin: 6px 0;
+    color: #facc15;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+#banner-sub {
+    margin: 6px 0 0;
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
+
+/* Telas de Menu (Overlay HTML) */
+.overlay-screen {
+    position: fixed;
+    inset: 0;
+    background: rgba(9, 25, 47, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+    padding: 20px;
+}
+
+.military-panel {
+    background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+    border: 3px solid #cbd5e1;
+    box-shadow: 0 0 0 4px #0f172a, 0 20px 50px rgba(0, 0, 0, 0.7);
+    border-radius: 6px;
+    padding: 24px 30px;
+    max-width: 450px;
+    width: 100%;
+    text-align: center;
+}
+
+.military-panel.compact {
+    max-width: 360px;
+}
+
+.wings-emblem {
+    display: inline-block;
+    background: #ca8a04;
+    color: #0f172a;
+    font-weight: 900;
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    letter-spacing: 1.5px;
+    border-radius: 2px;
+    margin-bottom: 8px;
+}
+
+.wings-emblem.danger {
+    background: #dc2626;
+    color: #fff;
+}
+
+.military-panel h1 {
+    margin: 4px 0;
+    font-family: Impact, 'Arial Black', sans-serif;
+    font-size: 2.2rem;
+    letter-spacing: 2px;
+    color: #f8fafc;
+    text-shadow: 3px 3px 0px #0284c7;
+}
+
+.military-panel h1.danger-text {
+    text-shadow: 3px 3px 0px #991b1b;
+}
+
+.subtitle {
+    margin: 0 0 16px;
+    color: #38bdf8;
+    font-size: 0.85rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.input-group {
+    margin-bottom: 14px;
+    text-align: left;
+}
+
+.input-group label {
+    display: block;
+    font-size: 0.75rem;
+    color: #cbd5e1;
+    margin-bottom: 4px;
+    font-weight: bold;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 10px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    text-align: center;
+    background: #020617;
+    border: 2px solid #38bdf8;
+    color: #facc15;
+    border-radius: 4px;
+    outline: none;
+}
+
+.input-group input:focus {
+    border-color: #facc15;
+}
+
+.tactical-btn {
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+    font-size: 0.95rem;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: transform 0.1s, background-color 0.15s;
+    pointer-events: auto;
+}
+
+.tactical-btn:active {
+    transform: scale(0.97);
+}
+
+.tactical-btn.primary {
+    width: 100%;
+    background: #eab308;
+    color: #0f172a;
+    border-bottom: 4px solid #a16207;
+    font-size: 1rem;
+}
+
+.tactical-btn.primary:hover {
+    background: #facc15;
+}
+
+.tactical-btn.secondary {
+    width: 100%;
+    background: #334155;
+    color: #f8fafc;
+    border-bottom: 4px solid #1e293b;
+    margin-top: 8px;
+}
+
+.tactical-btn.secondary:hover {
+    background: #475569;
+}
+
+.tactical-btn.small {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    background: rgba(15, 23, 42, 0.8);
+    color: #f8fafc;
+    border: 1px solid #38bdf8;
+    pointer-events: auto;
+}
+
+.leaderboard-box {
+    margin-top: 14px;
+    background: rgba(2, 6, 23, 0.6);
+    border: 1px solid #334155;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.leaderboard-box h3 {
+    margin: 0 0 8px;
+    font-size: 0.85rem;
+    color: #f97316;
+}
+
+.leaderboard-box ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 0.8rem;
+}
+
+.leaderboard-box li {
+    padding: 3px 0;
+    border-bottom: 1px dashed #1e293b;
+    color: #e2e8f0;
+}
+
+.leaderboard-box li:last-child {
+    border-bottom: none;
+}
+
+.leaderboard-box li.top-1 {
+    color: #facc15;
+    font-weight: bold;
+}
+
+.summary-stats {
+    margin: 12px 0;
+    font-size: 1rem;
+}
+
+.summary-stats .highlight {
+    color: #facc15;
+    font-size: 1.2rem;
+}
+
+.action-buttons {
+    margin-top: 14px;
+}
+
+.controls-hint {
+    margin-top: 12px;
+    font-size: 0.7rem;
+    color: #94a3b8;
+    line-height: 1.4;
+}

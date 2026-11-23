@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Armed skies</title>
+</head>
+<body>
+    <!-- Container principal centralizado (com margens nas laterais) -->
+    <div id="game-container">
+        <canvas id="game"></canvas>
+
+        <!-- HUD Tático Superior -->
+        <div id="hud-top" class="hud-bar hidden">
+            <div class="hud-item">PONTOS: <strong id="score">0</strong></div>
+            <div class="hud-item">MISSÃO: <strong id="wave">1</strong></div>
+            <div class="hud-item">VIDAS: <strong id="lives">3</strong></div>
+            <button id="btn-mute" class="tactical-btn small" title="Mutar/Desmutar [M]">🔊 SOM</button>
+        </div>
+
+        <!-- HUD Tático Inferior -->
+        <div id="hud-bottom" class="hud-bottom hidden">
+            <div class="missile-status">
+                <span>MÍSSIL [SHIFT]:</span>
+                <div class="progress-bar">
+                    <div id="missile-fill" class="progress-fill"></div>
+                </div>
+                <span id="missile-text">PRONTO</span>
+            </div>
+            <div id="debug-badge" class="debug-badge hidden">⚠️ MODO DEBUG</div>
+            <div class="bomb-status">
+                BOMBAS [B]: <strong id="bombs-count">0</strong>
+            </div>
+        </div>
+
+        <!-- Aviso Flutuante de Onda / Recompensa -->
+        <div id="wave-banner" class="wave-banner hidden">
+            <h2 id="banner-title">MISSÃO 1 CONCLUÍDA!</h2>
+            <p id="banner-reward" class="reward-text"></p>
+            <p id="banner-sub">Próxima onda em 3s...</p>
+        </div>
+    </div>
+
+    <!-- Tela Inicial (HTML) -->
+    <div id="start-screen" class="overlay-screen">
+        <div class="military-panel">
+            <div class="wings-emblem">Armed Skies: Axis in the blue</div>
+            <p class="subtitle">Jet Warfare</p>
+
+            <div class="input-group">
+                <label for="pilot-name">call sign:</label>
+                <input type="text" id="pilot-name" maxlength="12" placeholder="EX: Alfa" autocomplete="off">
+            </div>
+
+            <button id="btn-start" class="tactical-btn primary">DECOLAR [ENTER]</button>
+
+            <div class="leaderboard-box">
+                <h3>Aces</h3>
+                <ul id="start-highscores"></ul>
+            </div>
+
+            <div class="controls-hint">
+                <span><strong>WASD</strong>: Voar</span> • 
+                <span><strong>ESPAÇO</strong>: Metralhadora</span> • 
+                <span><strong>SHIFT</strong>: Míssil</span> • 
+                <span><strong>B</strong>: Bomba</span> • 
+                <span><strong>P</strong>: Pausa</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tela de Pausa (HTML) -->
+    <div id="pause-screen" class="overlay-screen hidden">
+        <div class="military-panel compact">
+            <h2>VOO PAUSADO</h2>
+            <p>Aguardando ordens do comando...</p>
+            <button id="btn-resume" class="tactical-btn primary">CONTINUAR [P]</button>
+            <button id="btn-quit" class="tactical-btn secondary">ABORTAR MISSÃO</button>
+        </div>
+    </div>
+
+    <!-- Tela de Game Over (HTML) -->
+    <div id="gameover-screen" class="overlay-screen hidden">
+        <div class="military-panel">
+            <div class="wings-emblem danger">⚠ ALERTA DE ABATE ⚠</div>
+            <h1 class="danger-text">CAÇA ABATIDO</h1>
+            
+            <div class="summary-stats">
+                <p>PILOTO: <strong id="final-pilot">JOGADOR</strong></p>
+                <p>PONTUAÇÃO: <strong id="final-score" class="highlight">0</strong></p>
+            </div>
+
+            <div class="leaderboard-box">
+                <h3>🏆 QUADRO DE HONRA</h3>
+                <ul id="gameover-highscores"></ul>
+            </div>
+
+            <div class="action-buttons">
+                <button id="btn-restart" class="tactical-btn primary">NOVA SURTIDA [R]</button>
+                <button id="btn-menu" class="tactical-btn secondary">TROCAR PILOTO [M]</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
