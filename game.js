@@ -40,28 +40,27 @@ resizeCanvas();
 // 1. CONFIGURAÇÃO DE SPRITES E ÁUDIO
 // ==========================================
 const SPRITE_PATHS = {
-    player: "ally_ship.png",
-    basic: "enemy1.png",
-    fighter: "enemy3.png",
-    bomber: "enemy5.png",
-    boss: "boss.png",
-    bullet: "player_bullet.png",
-    enemyBullet: "player_bullet.png",
-    missile: "missile.png",
-    bossMissile: "missile.png"
+    player: "img/ally_ship.png",
+    basic: "img/enemy1.png",
+    fighter: "img/enemy3.png",
+    bomber: "img/enemy5.png",
+    boss: "img/boss.png",
+    bullet: "img/player_bullet.png",
+    enemyBullet: "img/player_bullet.png",
+    missile: "img/missile.png",
+    bossMissile: "img/missile.png"
 };
 
 const SOUND_PATHS = {
-    shoot: "shoot.mp3",       
-    missile: "missile.mp3",     
-    damage: "damage.mp3",      
-    bomb: "bomb.mp3",        
-    start: "",       
-    bgm: "bgm.mp3",         
-    bossBgm: "boss.mp3",     
-    gameOver: "gameover.mp3",   
-    enemyShoot: "",
-    bossMissile: ""
+    shoot: "snd/shoot.mp3",       
+    missile: "snd/missile.mp3",     
+    damage: "snd/damage.mp3",      
+    bomb: "snd/bomb.mp3",               
+    bgm: "snd/bgm.mp3",         
+    bossBgm: "snd/boss.mp3",     
+    gameOver: "snd/gameover.mp3",   
+    enemyShoot: "snd/shoot.mp3",
+    bossMissile: "snd/missile.mp3"
 };
 
 const SPRITES = {};
