@@ -424,28 +424,52 @@ function aabb(a, b) {
     return a.x < b.x + b.w &&
            a.x + a.w > b.x &&
            a.y < b.y + b.h &&
-           a.y + b.h > b.y;
+           a.y + a.h > b.y;
 }
 
 // ==========================================
 // 6. ENTIDADES DO JOGO
 // ==========================================
+// Tempo (em segundos) de imunidade depois de perder uma vida
+const PLAYER_INVULN_TIME = 2.5;
+
+// Quanto a caixa de colisão do caça é menor que o sprite, em pixels de cada lado.
+// Com 7, a hitbox fica 28x28 dentro do sprite de 42x42 (aumente para facilitar, diminua para dificultar).
+const PLAYER_HITBOX_INSET = 7;
+
 class Player {
     constructor() {
         this.w = 42;
         this.h = 42;
         this.x = canvas.width / 2 - this.w / 2;
         this.y = canvas.height - 110;
-        this.speed = 320;
+        this.speed = 380;
         this.cooldown = 0;
         this.missileCooldown = 0;
 
-        this.baseShootCooldown = 0.22;
+        this.baseShootCooldown = 0.17;
         this.baseMissileCooldown = 2.0;
 
         this.extraCannons = false;
         this.doubleMissiles = false;
         this.bombs = 0;
+
+        this.invulnTimer = 0; // > 0 = imune (sprite piscando)
+    }
+
+    isInvulnerable() {
+        return this.invulnTimer > 0;
+    }
+
+    // Caixa de colisão (menor que o sprite, centralizada nele)
+    getHitbox() {
+        const i = PLAYER_HITBOX_INSET;
+        return {
+            x: this.x + i,
+            y: this.y + i,
+            w: this.w - i * 2,
+            h: this.h - i * 2
+        };
     }
 
     update(dt) {
@@ -491,6 +515,13 @@ class Player {
     }
 
     draw() {
+        ctx.save();
+
+        // Enquanto está imune, alterna entre visível e quase transparente (~5 piscadas por segundo)
+        if (this.isInvulnerable() && Math.floor(this.invulnTimer * 10) % 2 === 0) {
+            ctx.globalAlpha = 0.25;
+        }
+
         const sprite = SPRITES.player;
         if (sprite && sprite.complete && sprite.naturalWidth > 0) {
             ctx.drawImage(sprite, this.x, this.y, this.w, this.h);
@@ -503,6 +534,8 @@ class Player {
             ctx.closePath();
             ctx.fill();
         }
+
+        ctx.restore();
     }
 }
 
@@ -526,6 +559,19 @@ class Bullet {
             this.h = customH !== null ? customH : 14;
             this.damage = 1;
         }
+    }
+
+    // Caixa de colisão alinhada aos eixos que acompanha a rotação do sprite.
+    // Sem isso, tiros em ângulo (como a espiral do chefe) usavam sempre a caixa "em pé".
+    getHitbox() {
+        const angle = Math.atan2(this.speedY, this.speedX) + Math.PI / 2;
+        const c = Math.abs(Math.cos(angle));
+        const s = Math.abs(Math.sin(angle));
+        const w = this.w * c + this.h * s;
+        const h = this.w * s + this.h * c;
+        const cx = this.x + this.w / 2;
+        const cy = this.y + this.h / 2;
+        return { x: cx - w / 2, y: cy - h / 2, w, h };
     }
 
     update(dt) {
@@ -589,8 +635,8 @@ class Enemy {
         this.speed = speed;
         this.w = 32;
         this.h = 32;
-        this.hp = 1;
-        this.maxHp = 1;
+        this.hp = 2;
+        this.maxHp = 2;
         this.points = 15;
         this.type = "basic";
         this.dead = false;
@@ -600,7 +646,7 @@ class Enemy {
         this.y += this.speed * dt;
         if (this.y > canvas.height) {
             this.dead = true;
-            triggerGameOver();
+            loseLife(); // inimigo escapou: custa 1 vida (game over só quando as vidas acabam)
         }
     }
 
@@ -610,6 +656,7 @@ class Enemy {
         if (this.hp <= 0) {
             this.dead = true;
             score += this.points;
+            spawnExplosion(this.x + this.w / 2, this.y + this.h / 2, this.w);
         }
     }
 
@@ -643,8 +690,8 @@ class FighterEnemy extends Enemy {
         super(x, y, speed * 1.25);
         this.w = 36;
         this.h = 36;
-        this.hp = 2;
-        this.maxHp = 2;
+        this.hp = 1;
+        this.maxHp = 1;
         this.points = 30;
         this.type = "fighter";
         this.shootTimer = 1 + Math.random() * 1.5;
@@ -708,8 +755,8 @@ class BossEnemy {
         this.dead = false;
         
         this.spiralAngle = 0; 
-        this.shootTimer = 1.0;
-        this.missileTimer = 3.5;
+        this.shootTimer = 0.8;
+        this.missileTimer = 2.0;
         this.minionSpawnTimer = 4.5;
     }
 
@@ -730,7 +777,7 @@ class BossEnemy {
             this.fireSpiralPattern();
             playSound("enemyShoot");
             
-            const bossFireRate = Math.max(0.4, 1.5 - (this.appearanceCount * 0.1));
+            const bossFireRate = Math.max(0.3, 0.9 - (this.appearanceCount * 0.06));
             this.shootTimer = bossFireRate;
         }
 
@@ -738,7 +785,7 @@ class BossEnemy {
         if (this.missileTimer <= 0) {
             bullets.push(new Bullet(this.x + this.w / 2 - 5, this.y + this.h, 240, 0, true, false, true));
             playSound("bossMissile");
-            this.missileTimer = Math.max(2.0, 4.0 - (this.appearanceCount * 0.3));
+            this.missileTimer = Math.max(1.2, 2.2 - (this.appearanceCount * 0.15));
         }
 
         if (this.appearanceCount >= 2) {
@@ -797,8 +844,12 @@ class BossEnemy {
         if (this.hp <= 0) {
             this.dead = true;
             score += this.points;
+            spawnBossExplosion(this);
             enemies.forEach(e => {
-                if (!(e instanceof BossEnemy)) e.dead = true;
+                if (!(e instanceof BossEnemy) && !e.dead) {
+                    e.dead = true;
+                    spawnExplosion(e.x + e.w / 2, e.y + e.h / 2, e.w);
+                }
             });
         }
     }
@@ -832,9 +883,110 @@ class BossEnemy {
     }
 }
 
+// ==========================================
+// EFEITO DE EXPLOSÃO (desenhado no canvas, sem sprites)
+// ==========================================
+class Explosion {
+    constructor(x, y, size = 32, delay = 0) {
+        this.x = x;
+        this.y = y;
+        this.size = size;
+        this.delay = delay; // atraso antes de começar (usado nas explosões do chefe)
+        this.age = 0;
+        this.duration = 0.6;
+        this.dead = false;
+
+        const colors = ["#fef08a", "#facc15", "#f97316", "#ef4444", "#7f1d1d"];
+        const count = Math.round(10 + size / 3);
+        this.particles = [];
+
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = (40 + Math.random() * 130) * (size / 32);
+            this.particles.push({
+                x: 0,
+                y: 0,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                s: 3 + Math.floor(Math.random() * 4),
+                color: colors[Math.floor(Math.random() * colors.length)]
+            });
+        }
+    }
+
+    update(dt) {
+        if (this.delay > 0) {
+            this.delay -= dt;
+            return;
+        }
+
+        this.age += dt;
+        const drag = Math.pow(0.02, dt);
+        for (const p of this.particles) {
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.vx *= drag;
+            p.vy *= drag;
+        }
+
+        if (this.age >= this.duration) this.dead = true;
+    }
+
+    draw() {
+        if (this.delay > 0) return;
+
+        const t = Math.min(1, this.age / this.duration);
+        const fade = 1 - t;
+
+        ctx.save();
+
+        // Clarão central que cresce e some
+        const radius = this.size * (0.5 + t * 0.8);
+        const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, radius);
+        grad.addColorStop(0, `rgba(255, 255, 230, ${fade})`);
+        grad.addColorStop(0.45, `rgba(250, 204, 21, ${0.85 * fade})`);
+        grad.addColorStop(1, "rgba(239, 68, 68, 0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Fagulhas quadradas (combinam com o estilo pixel art das nuvens)
+        ctx.globalAlpha = fade;
+        for (const p of this.particles) {
+            const s = Math.max(1, Math.round(p.s * (1 - t * 0.5)));
+            ctx.fillStyle = p.color;
+            ctx.fillRect(Math.round(this.x + p.x - s / 2), Math.round(this.y + p.y - s / 2), s, s);
+        }
+
+        ctx.restore();
+    }
+}
+
+function spawnExplosion(x, y, size = 32, delay = 0) {
+    explosions.push(new Explosion(x, y, size, delay));
+}
+
+// Explosão grande no centro + várias menores espalhadas, em sequência
+function spawnBossExplosion(boss) {
+    const cx = boss.x + boss.w / 2;
+    const cy = boss.y + boss.h / 2;
+
+    spawnExplosion(cx, cy, boss.w * 1.4);
+    for (let i = 1; i <= 6; i++) {
+        spawnExplosion(
+            cx + (Math.random() - 0.5) * boss.w,
+            cy + (Math.random() - 0.5) * boss.h,
+            36 + Math.random() * 24,
+            i * 0.08
+        );
+    }
+}
+
 let player = null;
 let bullets = [];
 let enemies = [];
+let explosions = [];
 let score = 0;
 let lives = 3;
 let waves = 1;
@@ -854,6 +1006,7 @@ function startGame() {
     player = new Player();
     bullets = [];
     enemies = [];
+    explosions = [];
     score = 0;
     waves = 1; 
     pause = false;
@@ -924,6 +1077,7 @@ function useBomb() {
         } else {
             score += e.points;
             e.dead = true;
+            spawnExplosion(e.x + e.w / 2, e.y + e.h / 2, e.w);
         }
     });
 }
@@ -1049,6 +1203,13 @@ function update(dt) {
 
     if (gameState !== "PLAYING" || pause) return;
 
+    // Explosões e imunidade continuam rodando mesmo no intervalo entre as ondas
+    explosions.forEach((ex) => ex.update(dt));
+    explosions = explosions.filter((ex) => !ex.dead);
+    if (player && player.invulnTimer > 0) {
+        player.invulnTimer = Math.max(0, player.invulnTimer - dt);
+    }
+
     handleWaveSystem(dt);
 
     if (waitingForNextMission) return; 
@@ -1066,13 +1227,13 @@ function update(dt) {
 
         if (!b.isEnemy) {
             enemies.forEach((e) => {
-                if (!b.dead && !e.dead && aabb(b, e)) {
+                if (!b.dead && !e.dead && aabb(b.getHitbox(), e)) {
                     b.dead = true;
                     e.takeDamage(b.damage);
                 }
             });
         } else {
-            if (player && aabb(b, player)) {
+            if (player && !player.isInvulnerable() && aabb(b.getHitbox(), player.getHitbox())) {
                 b.dead = true;
                 damagePlayer();
             }
@@ -1080,8 +1241,9 @@ function update(dt) {
     });
 
     enemies.forEach((e) => {
-        if (!e.dead && !(e instanceof BossEnemy) && player && aabb(e, player)) {
+        if (!e.dead && !(e instanceof BossEnemy) && player && !player.isInvulnerable() && aabb(e, player.getHitbox())) {
             e.dead = true;
+            spawnExplosion(e.x + e.w / 2, e.y + e.h / 2, e.w);
             damagePlayer();
         }
     });
@@ -1092,14 +1254,24 @@ function update(dt) {
     syncHud();
 }
 
-function damagePlayer() {
+// Tira 1 vida e liga a imunidade temporária (sprite piscando).
+// Usada por qualquer perda de vida, inclusive inimigo que escapou pela parte de baixo.
+function loseLife() {
     if (gameState !== "PLAYING") return;
     lives -= 1;
     playSound("damage");
     if (lives <= 0) {
         lives = 0;
         triggerGameOver();
+        return;
     }
+    if (player) player.invulnTimer = PLAYER_INVULN_TIME;
+}
+
+// Dano por contato (tiro ou colisão): ignorado enquanto o jogador está imune
+function damagePlayer() {
+    if (player && player.isInvulnerable()) return;
+    loseLife();
 }
 
 function syncHud() {
@@ -1133,6 +1305,7 @@ function draw() {
 
     if (player) player.draw();
     if (enemies) enemies.forEach((e) => e.draw());
+    if (explosions) explosions.forEach((ex) => ex.draw());
     if (bullets) bullets.forEach((b) => b.draw());
 
     if (bombFlashTimer > 0) {

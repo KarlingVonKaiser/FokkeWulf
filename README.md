@@ -1,21 +1,14 @@
-# ✈️ Armed Skies: Axis in the Blue
+Armed Skies: Axis in the Blue
 
 Shooter vertical de caças em HTML5 Canvas. Pilote seu jato, derrube ondas de inimigos, enfrente chefes e entre para o quadro de honra. Feito com HTML, CSS e JavaScript puro, sem dependências e sem build.
 
-## Como jogar
+Como jogar
 
 1. Baixe ou clone o projeto mantendo a estrutura de pastas (veja abaixo).
 2. Abra o `index.html` no navegador.
 3. Digite seu *call sign* (até 12 caracteres) e aperte **ENTER** ou clique em **DECOLAR**.
 
-Se o navegador bloquear o carregamento de imagens ou sons ao abrir o arquivo direto, sirva a pasta com um servidor local:
-
-```bash
-python3 -m http.server 8000
-# depois acesse http://localhost:8000
-```
-
-## Controles
+Controles
 
 | Tecla | Ação |
 | --- | --- |
@@ -28,14 +21,16 @@ python3 -m http.server 8000
 | **R** | Nova surtida (na tela de game over) |
 | **M** | Voltar ao menu e trocar de piloto (na tela de game over) |
 
-## Regras
+Regras
 
 - Você começa com **3 vidas**. Tiros, mísseis e colisões com inimigos custam 1 vida cada.
-- **Se um inimigo passar pela parte de baixo da tela, é game over na hora**, mesmo com vidas sobrando.
+- **Se um inimigo passar pela parte de baixo da tela, você perde 1 vida.** O game over só acontece quando as vidas acabam.
+- A caixa de colisão do caça é menor que o sprite (28×28 dentro de 42×42), então tiros e inimigos que só raspam nas bordas não acertam.
+- Depois de perder uma vida, o caça **pisca e fica imune por 2,5 s**: nesse tempo tiros e colisões não causam dano. Um inimigo que escapa pela parte de baixo ainda custa uma vida, mesmo com a imunidade ligada.
 - Cada missão (onda) tem `3 + 3 × número da missão` inimigos. A cada missão os inimigos ficam mais rápidos e aparecem com mais frequência.
 - Ao limpar uma onda há uma pausa de 3 s antes da próxima.
 
-### Inimigos
+Inimigos
 
 | Inimigo | Aparece a partir da | Vida | Pontos | Comportamento |
 | --- | --- | --- | --- | --- |
@@ -44,13 +39,13 @@ python3 -m http.server 8000
 | Bombardeiro | Missão 3 | 5 | 75 | Mais lento, lança mísseis |
 | **Chefe** | Missão 10, 20, 30... | 250 (+50 a cada novo chefe) | 1000 | Tiros em espiral e mísseis; a partir do 2º chefe também invoca inimigos |
 
-A metralhadora causa 1 de dano e o míssil causa 5. Ao derrotar um chefe, todos os outros inimigos da tela somem.
+A metralhadora causa 1 de dano e o míssil causa 5. Inimigos destruídos explodem. Ao derrotar um chefe, todos os outros inimigos da tela explodem junto com ele.
 
-### Bombas
+Bombas
 
 Você começa sem bombas e ganha pelas recompensas. Uma bomba apaga todos os tiros inimigos, destrói todos os inimigos comuns da tela (que dão pontos normalmente) e causa 100 de dano ao chefe.
 
-### Recompensas
+Recompensas
 
 A cada **5 missões** concluídas você ganha **+1 vida** e um upgrade sorteado:
 
@@ -60,11 +55,11 @@ A cada **5 missões** concluídas você ganha **+1 vida** e um upgrade sorteado:
 - Turbinas (mais velocidade)
 - Mais RPM (tiro e míssil recarregam mais rápido)
 
-## Quadro de honra
+Quadro de honra
 
 Os 5 melhores pilotos ficam salvos no `localStorage` do navegador. Cada *call sign* guarda apenas a melhor pontuação, junto com a missão alcançada. Se você deixar o nome em branco, o piloto vira **MAVERICK**.
 
-## Estrutura do projeto
+Estrutura do projeto
 
 ```
 .
@@ -91,12 +86,15 @@ Os 5 melhores pilotos ficam salvos no `localStorage` do navegador. Cada *call si
 
 Se algum sprite não carregar, o jogo desenha uma forma simples no lugar. Se algum som estiver faltando, ele é ignorado sem travar o jogo.
 
-## Personalização
+Personalização
 
 - **Sprites e sons:** troque os arquivos em `img/` e `snd/` ou altere os caminhos em `SPRITE_PATHS` e `SOUND_PATHS`, no início do `game.js`.
 - **Volumes:** ajuste o objeto `SOUND_VOLUMES` (valores de 0 a 1).
 - **Equilíbrio:** vidas iniciais, velocidade, tempos de recarga, vida dos inimigos e pontuação ficam nas classes `Player`, `Enemy`, `FighterEnemy`, `BomberEnemy` e `BossEnemy`.
+- **Imunidade:** a duração depois de levar dano é a constante `PLAYER_INVULN_TIME`, em segundos.
+- **Hitbox do caça:** `PLAYER_HITBOX_INSET` define quantos pixels a caixa de colisão encolhe de cada lado (maior = mais fácil).
+- **Explosões:** são desenhadas direto no canvas pela classe `Explosion`, sem precisar de imagens.
 
-## Modo debug
+Modo debug
 
 Usar o call sign `DEBUG123` começa a partida na missão 9, com 10 vidas, 5 bombas e todos os upgrades. Nesse modo a pontuação não é salva no quadro de honra.
